@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Socket } from 'ngx-socket-io';
+import { Usuario } from '../classes/usuario';
 
 @Injectable({
   providedIn: 'root'
@@ -9,7 +10,11 @@ export class WebsocketService {
   // Variable que indica el estado del socket
   public socketStatus: boolean = false;
 
+  // Variable que define el usuario
+  public usuario: Usuario = null;
+
   constructor(private socket: Socket) { 
+    this.cargarStorage();
     this.checkStatus();
   }
 
@@ -37,6 +42,45 @@ export class WebsocketService {
   listen(evento: string) {
     // Escuchando cualquier evento que viene del servidor
     return this.socket.fromEvent( evento );
+  }
+
+  loginWS( nombre: string ) {
+    return new Promise((resolve, reject) => {
+
+      console.log('Configurando el nombre', nombre)
+      // Usando el método emit de este servicio
+      this.emit('configurar-usuario', {nombre: nombre}, resp => {
+        // console.log(resp);
+
+        this.usuario = new Usuario(
+          nombre
+        );
+
+        this.guardarStorage();
+
+        resolve();
+      });
+  
+      // Esta es una forma de hacer lo mismo pero sin usar el método emit del servicio
+      // this.socket.emit('configurar-usuario', {nombre: nombre}, (resp) => {
+      //   console.log(resp)
+      // });
+    })
+  }
+
+  getUsuario() {
+    return this.usuario;
+  }
+
+  guardarStorage() {
+    localStorage.setItem('usuario', JSON.stringify(this.usuario));
+  }
+  
+  cargarStorage() {
+    if (localStorage.getItem('usuario')) {
+      this.usuario = JSON.parse(localStorage.getItem('usuario'));
+      this.loginWS(this.usuario.nombre);
+    }
   }
 
 }
